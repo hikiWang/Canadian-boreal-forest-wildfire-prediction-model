@@ -1,0 +1,166 @@
+# MAXENT modelling
+## Load following packages
+library("raster")
+library("dismo")
+library("tmap")
+library("sf")
+library("rJava") 
+library("sp")
+library("caret")
+
+## Set working directory to location of datasets
+setwd(dir="F:\\UCL\\Dissertation\\MaxEnt")
+
+## Load survey points of wildfire occurrences during 2020 to 2022
+wildfire.data <- read.csv("wildfire_boreal20-22.csv")
+class(wildfire.data)
+wildfire.data_sf <- st_as_sf(wildfire.data, coords = c("LONGITUDE", "LATITUDE"))
+wildfire.data_sf <- st_set_crs(wildfire.data_sf, 4617)
+
+# Load raster files
+prec <- raster("Canadian Boreal Precipitation.tif")
+
+temp <- raster("Canadian Boreal Temperature.tif")
+
+elev <- raster("Canadian Boreal Elevation.tif")
+
+slope <- raster("Canadian Boreal Slope.tif")
+
+lc <- raster("Canadian Boreal Land Cover_ngb.tif")
+
+ndvi <- raster("Canadian Boreal NDVI.tif")
+
+popl <- raster("Canadian Boreal Population Density.tif")
+
+# Load the outline shapefile for Canadian boreal forest
+boreal_outline <- read_sf("Boreal Forest CA.shp")
+
+# Step 1: Prepare for data for maxent analysis
+## Create a multi-band raster using stack() function on the environmental variables
+env_covariates <- stack(prec, temp, elev, slope, lc, ndvi, popl)
+names(env_covariates) <- c("Precipitation", "Temperature", "Elevation", "Slope", "Land Cover", "NDVI", "Population")
+
+# Step 2: Convert points of occurrence from a data frame object to that of a spatial points object
+## Declare the column longitude and latitude as coordinates
+wildfire_points <- wildfire.data[, c(2,3)]
+coordinates(wildfire_points) = ~LONGITUDE+LATITUDE
+
+## Define the CRS: NAD83(CSRS) 4617 | using crs() from sp
+crs(wildfire_points) <- CRS("+init=epsg:4617")
+# Show details of temp as example
+temp
+tm_shape(boreal_outline) + tm_polygons() + tm_shape(wildfire.data_sf) + tm_dots(col = "red")
+
+# Step 3: Create background points within the Canadian boreal forest region
+## Summarizing a set of randomly generated pseudo-absence points as control points where no wildfire occurrence is present.
+## Double the number of controls based on the presence points
+set.seed(20220908)
+boreal_outline_sp <- as(boreal_outline, Class = "Spatial")
+background_points <- spsample(boreal_outline_sp, n=2*length(wildfire_points), "random")
+
+# Step 4: Perform raster extraction from the environmental covariates on to all points
+wildfire_points_env <- extract(env_covariates, wildfire_points)
+background_points_env <- extract(env_covariates, background_points)
+
+## Convert the large matrix objects to separate data frame objects and then add binary outcome `present`
+wildfire_points_env <-data.frame(wildfire_points_env, wildfire=1)
+background_points_env <-data.frame(background_points_env, wildfire=0)
+
+
+
+# Step 5: Perform k-fold cross-validation
+## split plot panel into 4 segments for 4 AUC plots
+par(mfrow=c(2,2))
+
+## create a list() object to dump results inside `eMAX`
+eMAX<-list()
+
+## use wildfire_points_env and background_points_env
+folds <- 4
+kfold_pres <- kfold(wildfire_points_env, folds)
+kfold_back <- kfold(background_points_env, folds)
+
+## using thesame set.seed() as before
+set.seed(20220908)
+## Adapting loop code
+## Train the model 
+for (i in 1:folds) {
+  ## 25% of the wildfire data use for testing the model and 75% of the wildfire data use for training the model
+  train <- wildfire_points_env[kfold_pres!= i,]
+  test <- wildfire_points_env[kfold_pres == i,]
+  ## 25% of the background data use for testing the model and 75% of the background data use for testing the model
+  backTrain<-background_points_env[kfold_back!=i,]
+  backTest<-background_points_env[kfold_back==i,]
+  dataTrain<-rbind(train,backTrain)
+  dataTest<-rbind(test,backTest)
+  maxnet_eval <- maxent(x=dataTrain[,c(1:7)], p=dataTrain[,8], args=c("responsecurves"))
+  eMAX[[i]] <- evaluate(p=dataTest[dataTest$wildfire==1,],a=dataTest[dataTest$wildfire==0,], maxnet_eval)
+  plot(eMAX[[i]],'ROC')
+}
+
+aucMAX <- sapply( eMAX, function(x){slot(x, 'auc')} )
+## Report 4 of the AUC
+aucMAX
+
+## Find the mean of AUC (and it must be > 0.50)
+mean(aucMAX)
+
+## Get maxTPR+TNR for the maxnet model
+Opt_MAX<-sapply( eMAX, function(x){ x@t[which.max(x@TPR + x@TNR)] } )
+Opt_MAX
+
+Mean_OptMAX<-mean(Opt_MAX)
+Mean_OptMAX
+## use Mean_OptMAX as threshold for mapping suitability
+
+# Step 6: Obtain results
+## Check variable contribution
+plot(maxnet_eval, pch=19, xlab = "Percentage [%]", cex=1.2)
+
+## Obtaining the percentage contribution and permutation importance of each variable in the model.
+maxnet_eval@results
+
+## Get Response Curve
+response(maxnet_eval)
+
+
+## Mapping predicted probabilities of wildfire occurrence
+prob_wildfire <- predict(maxnet_eval, env_covariates)
+
+## Generate a publication-worthy figure
+## Map of probability 
+tm_shape(prob_wildfire) +
+  tm_raster(title = "Predicted probability", palette = '-RdYlBu', style ='cont', breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0))+
+  tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
+  tm_layout(main.title = "Predicted Probability of Wild Fire in Canadian Boreal Forest [%]", main.title.position = c(0.04, 0.7), title.size=2, legend.text.size = 1.1, 
+            legend.position = c(0.02, 0.4), legend.height= -0.3, legend.title.size = 1.1, frame='white')+
+  tm_scale_bar(position=c(0.02, 0.2), text.size = 2, breaks = c(0, 250, 500))+
+  tm_compass(north = 0,type = 'arrow', position = c('right', 'top'), text.size = 0.9)
+
+## Calculate thresholds of models
+threshold_value <- threshold(eMAX[[i]], "spec_sens")
+## report value
+threshold_value
+
+## Prepare threshold total map 
+create_classes_vector <- c(0, Mean_OptMAX, 0, Mean_OptMAX, 1, 1)
+create_clasess_matrix <- matrix(create_classes_vector, ncol = 3, byrow = TRUE)
+create_clasess_matrix
+
+## Create new reclassify raster based on prob_wildfires
+suitability_wildfires <- reclassify(prob_wildfire, create_clasess_matrix)
+
+## Generate threshold map which shows regions as trigger points
+tm_shape(suitability_wildfires) + tm_raster(style = "cat", title = "Threshold", palette= c("lightgrey", "red"), labels = c("Safe", "Trigger Points")) +
+  tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
+  tm_layout(frame = FALSE, legend.outside = TRUE)
+
+## Generate the image
+a <- background_points_env
+b <- raster::geom(background_points)
+
+a$long <- b[,2]
+a$lat <- b[,3]
+a <- a[,9:10]
+
+write.csv(a, file="background points.csv", row.names = FALSE)
