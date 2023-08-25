@@ -1,0 +1,81 @@
+# Prepare raster layers of all variables
+# Activate packages
+library(raster)
+library(tmap)
+library(sf)
+
+# Precipitation
+setwd(dir="F:\\UCL\\Dissertation\\precipitation\\extract")
+precipitation <- "F:\\UCL\\Dissertation\\precipitation\\extract\\prec.tif"
+prec_data <- raster(precipitation)
+print(prec_data)
+writeRaster(prec_data, filename = "Canadian Boreal Precipitation.tif", overwrite = TRUE)
+
+# Standardize all raster to dimension of approx. 4.4 km
+RasterTemplate <- raster(nrow=dim(prec_data)[1], ncol=dim(prec_data)[2], crs=crs(prec_data), extent(prec_data))
+
+# Population density
+setwd(dir="F:\\UCL\\ArcMap_pop")
+population <- "F:\\UCL\\ArcMap_pop\\popd1.tif"
+population_boreal <- raster(population)
+print(population_boreal)
+
+# Resample
+population_resampled <- resample(population_boreal, RasterTemplate, method = "bilinear")
+print(population_resampled)
+writeRaster(population_resampled, filename = "Canadian Boreal Population Density.tif", overwrite = TRUE)
+
+# Elevation
+setwd(dir="F:\\UCL\\Dissertation\\DEM\\DEM_boreal")
+DEM_resample <- "F:\\UCL\\Dissertation\\DEM\\DEM_boreal\\DEM.tif"
+elevation <- raster(DEM_resample)
+print(elevation)
+
+# Resample
+elevation_resampled <- resample(elevation, RasterTemplate, method = "bilinear")
+print(elevation_resampled)
+writeRaster(elevation_resampled, filename = "Canadian Boreal Elevation.tif", overwrite = TRUE)
+
+# Land cover
+setwd(dir="F:\\UCL\\Dissertation\\land cover")
+LandCover <- "F:\\UCL\\Dissertation\\land cover\\LC_ngb.tif"
+LC <- raster(LandCover)
+print(LC)
+
+# Resample
+LC_resampled <- resample(LC, RasterTemplate, method = "ngb")
+print(LC_resampled)
+writeRaster(LC_resampled, filename = "Canadian Boreal Land Cover_ngb.tif", overwrite = TRUE)
+
+# Slope
+setwd(dir="F:\\UCL\\Dissertation\\Slope\\extract")
+Slope_DEM <- "F:\\UCL\\Dissertation\\Slope\\extract\\slope.tif"
+Slope <- raster(Slope_DEM)
+print(Slope)
+
+# Resample
+Slope_resampled <- resample(Slope, RasterTemplate, method = "bilinear")
+print(Slope_resampled)
+writeRaster(Slope_resampled, filename = "Canadian Boreal Slope.tif", overwrite = TRUE)
+
+# NDVI
+setwd(dir="F:\\UCL\\Dissertation\\NDVI")
+ndvi <- "F:\\UCL\\Dissertation\\NDVI\\NDVI.tif"
+NDVI <- raster(ndvi)
+print(NDVI)
+
+# Resample
+NDVI_resampled <- resample(NDVI, RasterTemplate, method = "bilinear")
+print(NDVI_resampled)
+writeRaster(NDVI_resampled, filename = "Canadian Boreal NDVI.tif", overwrite = TRUE)
+setwd(dir="F:\\UCL\\Dissertation\\temperature\\extract")
+
+# Temperature
+TemMax <- "F:\\UCL\\Dissertation\\temperature\\extract\\temp.tif"
+temperature <- raster(TemMax)
+print(temperature)
+
+# Resample
+temperature_resampled <- resample(temperature, RasterTemplate, method = "bilinear")
+print(temperature_resampled)
+writeRaster(temperature_resampled, filename = "Canadian Boreal Temperature.tif", overwrite = TRUE)
