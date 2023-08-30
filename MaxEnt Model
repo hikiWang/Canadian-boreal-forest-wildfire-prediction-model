@@ -66,8 +66,6 @@ background_points_env <- extract(env_covariates, background_points)
 wildfire_points_env <-data.frame(wildfire_points_env, wildfire=1)
 background_points_env <-data.frame(background_points_env, wildfire=0)
 
-
-
 # Step 5: Perform k-fold cross-validation
 ## split plot panel into 4 segments for 4 AUC plots
 par(mfrow=c(2,2))
@@ -111,7 +109,7 @@ Opt_MAX
 
 Mean_OptMAX<-mean(Opt_MAX)
 Mean_OptMAX
-## use Mean_OptMAX as threshold for mapping suitability
+## Use Mean_OptMAX as threshold for mapping suitability
 
 # Step 6: Obtain results
 ## Check variable contribution
@@ -123,7 +121,6 @@ maxnet_eval@results
 ## Get Response Curve
 response(maxnet_eval)
 
-
 ## Mapping predicted probabilities of wildfire occurrence
 prob_wildfire <- predict(maxnet_eval, env_covariates)
 
@@ -132,12 +129,12 @@ prob_wildfire <- predict(maxnet_eval, env_covariates)
 tm_shape(prob_wildfire) +
   tm_raster(title = "Predicted probability", palette = '-RdYlBu', style ='cont', breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0))+
   tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
-  tm_layout(main.title = "Predicted Probability of Wild Fire in Canadian Boreal Forest [%]", main.title.position = c(0.04, 0.7), title.size=2, legend.text.size = 1.1, 
+  tm_layout(main.title = "Predicted Probability of Wildfire in Canadian Boreal Forest [%]", main.title.position = c(0.04, 0.7), title.size=2, legend.text.size = 1.1, 
             legend.position = c(0.02, 0.4), legend.height= -0.3, legend.title.size = 1.1, frame='white')+
   tm_scale_bar(position=c(0.02, 0.2), text.size = 2, breaks = c(0, 250, 500))+
   tm_compass(north = 0,type = 'arrow', position = c('right', 'top'), text.size = 0.9)
 
-## Export wildfire probability risk map
+## Export wildfire probability raster data
 writeRaster(prob_wildfire, filename = "Predicted Probability.tif", overwrite = TRUE)
 
 ## Calculate thresholds of models
@@ -158,7 +155,7 @@ tm_shape(suitability_wildfires) + tm_raster(style = "cat", title = "Threshold", 
   tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
   tm_layout(frame = FALSE, legend.outside = TRUE)
 
-## Export threshold map
+## Export threshold raster data
 writeRaster(suitability_wildfires, filename = "Threshold Map.tif", overwrite = TRUE)
 
 ## Generate the image
