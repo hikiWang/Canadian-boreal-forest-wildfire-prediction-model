@@ -11,8 +11,8 @@ library("caret")
 ## Set working directory to location of datasets
 setwd(dir="F:\\UCL\\Dissertation\\MaxEnt")
 
-## Load survey points of wildfire occurrences during 2020 to 2022
-wildfire.data <- read.csv("wildfire_boreal20-22.csv")
+# Load survey points of wildfire occurrences in 2021
+wildfire.data <- read.csv("wildfire_boreal2021.csv")
 class(wildfire.data)
 wildfire.data_sf <- st_as_sf(wildfire.data, coords = c("LONGITUDE", "LATITUDE"))
 wildfire.data_sf <- st_set_crs(wildfire.data_sf, 4617)
@@ -82,8 +82,8 @@ kfold_back <- kfold(background_points_env, folds)
 
 ## using thesame set.seed() as before
 set.seed(20220908)
-## Adapting loop code
-## Train the model 
+## Adapting loop code (Reference: https://rpubs.com/mlibxmda/GEOG70922_Week5)
+## Train the model and run 4-fold
 for (i in 1:folds) {
   ## 25% of the wildfire data use for testing the model and 75% of the wildfire data use for training the model
   train <- wildfire_points_env[kfold_pres!= i,]
@@ -137,6 +137,9 @@ tm_shape(prob_wildfire) +
   tm_scale_bar(position=c(0.02, 0.2), text.size = 2, breaks = c(0, 250, 500))+
   tm_compass(north = 0,type = 'arrow', position = c('right', 'top'), text.size = 0.9)
 
+## Export wildfire probability risk map
+writeRaster(prob_wildfire, filename = "Predicted Probability.tif", overwrite = TRUE)
+
 ## Calculate thresholds of models
 threshold_value <- threshold(eMAX[[i]], "spec_sens")
 ## report value
@@ -154,6 +157,9 @@ suitability_wildfires <- reclassify(prob_wildfire, create_clasess_matrix)
 tm_shape(suitability_wildfires) + tm_raster(style = "cat", title = "Threshold", palette= c("lightgrey", "red"), labels = c("Safe", "Trigger Points")) +
   tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
   tm_layout(frame = FALSE, legend.outside = TRUE)
+
+## Export threshold map
+writeRaster(suitability_wildfires, filename = "Threshold Map.tif", overwrite = TRUE)
 
 ## Generate the image
 a <- background_points_env
