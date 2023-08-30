@@ -5,8 +5,8 @@ library(tmap)
 library(sf)
 
 # Precipitation
-setwd(dir="F:\\UCL\\Dissertation\\precipitation\\extract")
-precipitation <- "F:\\UCL\\Dissertation\\precipitation\\extract\\prec.tif"
+setwd(dir="F:\\UCL\\Dissertation\\precipitation")
+precipitation <- "F:\\UCL\\Dissertation\\precipitation\\2021totalprec.tif"
 prec_data <- raster(precipitation)
 print(prec_data)
 writeRaster(prec_data, filename = "Canadian Boreal Precipitation.tif", overwrite = TRUE)
@@ -71,7 +71,8 @@ writeRaster(NDVI_resampled, filename = "Canadian Boreal NDVI.tif", overwrite = T
 setwd(dir="F:\\UCL\\Dissertation\\temperature\\extract")
 
 # Temperature
-TemMax <- "F:\\UCL\\Dissertation\\temperature\\extract\\temp.tif"
+setwd(dir="F:\\UCL\\Dissertation\\temperature")
+TemMax <- "F:\\UCL\\Dissertation\\temperature\\2021temp.tif"
 temperature <- raster(TemMax)
 print(temperature)
 
