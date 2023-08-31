@@ -75,8 +75,8 @@ eMAX<-list()
 
 ## use wildfire_points_env and background_points_env
 folds <- 4
-kfold_pres <- kfold(wildfire_points_env, folds)
-kfold_back <- kfold(background_points_env, folds)
+kfold_presence <- kfold(wildfire_points_env, folds)
+kfold_background <- kfold(background_points_env, folds)
 
 ## using thesame set.seed() as before
 set.seed(20220908)
@@ -84,32 +84,32 @@ set.seed(20220908)
 ## Train the model and run 4-fold
 for (i in 1:folds) {
   ## 25% of the wildfire data use for testing the model and 75% of the wildfire data use for training the model
-  train <- wildfire_points_env[kfold_pres!= i,]
-  test <- wildfire_points_env[kfold_pres == i,]
+  Wildfiretrain <- wildfire_points_env[kfold_presence!= i,]
+  Wildfiretest <- wildfire_points_env[kfold_presence == i,]
   ## 25% of the background data use for testing the model and 75% of the background data use for testing the model
-  backTrain<-background_points_env[kfold_back!=i,]
-  backTest<-background_points_env[kfold_back==i,]
-  dataTrain<-rbind(train,backTrain)
-  dataTest<-rbind(test,backTest)
+  backTrain<-background_points_env[kfold_background!=i,]
+  backtest<-background_points_env[kfold_background==i,]
+  dataTrain<-rbind(Wildfiretrain,backTrain)
+  dataTest<-rbind(Wildfiretest,backtest)
   maxnet_eval <- maxent(x=dataTrain[,c(1:7)], p=dataTrain[,8], args=c("responsecurves"))
   eMAX[[i]] <- evaluate(p=dataTest[dataTest$wildfire==1,],a=dataTest[dataTest$wildfire==0,], maxnet_eval)
   plot(eMAX[[i]],'ROC')
 }
 
-aucMAX <- sapply( eMAX, function(x){slot(x, 'auc')} )
+AUCMAX <- sapply( eMAX, function(x){slot(x, 'auc')} )
 ## Report 4 of the AUC
 aucMAX
 
 ## Find the mean of AUC (and it must be > 0.50)
-mean(aucMAX)
+mean(AUCMAX)
 
 ## Get maxTPR+TNR for the maxnet model
-Opt_MAX<-sapply( eMAX, function(x){ x@t[which.max(x@TPR + x@TNR)] } )
-Opt_MAX
+Optimal_MAX<-sapply( eMAX, function(x){ x@t[which.max(x@TPR + x@TNR)] } )
+Optimal_MAX
 
-Mean_OptMAX<-mean(Opt_MAX)
-Mean_OptMAX
-## Use Mean_OptMAX as threshold for mapping suitability
+Mean_OptimalMAX<-mean(Optimal_MAX)
+Mean_OptimalMAX
+## Use Mean_OptimalMAX as threshold for mapping suitability
 
 # Step 6: Obtain results
 ## Check variable contribution
@@ -143,7 +143,7 @@ threshold_value <- threshold(eMAX[[i]], "spec_sens")
 threshold_value
 
 ## Prepare threshold total map 
-create_classes_vector <- c(0, Mean_OptMAX, 0, Mean_OptMAX, 1, 1)
+create_classes_vector <- c(0, Mean_OptimalMAX, 0, Mean_OptimalMAX, 1, 1)
 create_clasess_matrix <- matrix(create_classes_vector, ncol = 3, byrow = TRUE)
 create_clasess_matrix
 
