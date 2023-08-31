@@ -159,11 +159,11 @@ tm_shape(suitability_wildfires) + tm_raster(style = "cat", title = "Threshold", 
 writeRaster(suitability_wildfires, filename = "Threshold Map.tif", overwrite = TRUE)
 
 ## Generate the image
-a <- background_points_env
-b <- raster::geom(background_points)
+bp <- background_points_env
+rg <- raster::geom(background_points)
 
-a$long <- b[,2]
-a$lat <- b[,3]
-a <- a[,9:10]
+bp$long <- rg[,2]
+bp$lat <- rg[,3]
+bp <- bp[,9:10]
 
-write.csv(a, file="background points.csv", row.names = FALSE)
+write.csv(bp, file="background points.csv", row.names = FALSE)
