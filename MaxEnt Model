@@ -109,7 +109,7 @@ Optimal_MAX
 
 Mean_OptimalMAX<-mean(Optimal_MAX)
 Mean_OptimalMAX
-## Use Mean_OptimalMAX as threshold for mapping suitability
+## Use Mean_OptimalMAX as threshold for mapping threshold
 
 # Step 6: Obtain results
 ## Check variable contribution
@@ -122,11 +122,11 @@ maxnet_eval@results
 response(maxnet_eval)
 
 ## Mapping predicted probabilities of wildfire occurrence
-prob_wildfire <- predict(maxnet_eval, env_covariates)
+boreal_wildfire <- predict(maxnet_eval, env_covariates)
 
 ## Generate a publication-worthy figure
 ## Map of probability 
-tm_shape(prob_wildfire) +
+tm_shape(boreal_wildfire) +
   tm_raster(title = "Predicted probability", palette = '-RdYlBu', style ='cont', breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0))+
   tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
   tm_layout(main.title = "Predicted Probability of Wildfire in Canadian Boreal Forest [%]", main.title.position = c(0.04, 0.7), title.size=2, legend.text.size = 1.1, 
@@ -135,7 +135,7 @@ tm_shape(prob_wildfire) +
   tm_compass(north = 0,type = 'arrow', position = c('right', 'top'), text.size = 0.9)
 
 ## Export wildfire probability raster data
-writeRaster(prob_wildfire, filename = "Predicted Probability.tif", overwrite = TRUE)
+writeRaster(boreal_wildfire, filename = "Predicted Probability.tif", overwrite = TRUE)
 
 ## Calculate thresholds of models
 threshold_value <- threshold(eMAX[[i]], "spec_sens")
@@ -147,16 +147,16 @@ create_classes_vector <- c(0, Mean_OptimalMAX, 0, Mean_OptimalMAX, 1, 1)
 create_clasess_matrix <- matrix(create_classes_vector, ncol = 3, byrow = TRUE)
 create_clasess_matrix
 
-## Create new reclassify raster based on prob_wildfires
-suitability_wildfires <- reclassify(prob_wildfire, create_clasess_matrix)
+## Create new reclassify raster based on boreal_wildfires
+threshold_wildfires <- reclassify(boreal_wildfire, create_clasess_matrix)
 
 ## Generate threshold map which shows regions as trigger points
-tm_shape(suitability_wildfires) + tm_raster(style = "cat", title = "Threshold", palette= c("lightgrey", "red"), labels = c("Safe", "Trigger Points")) +
+tm_shape(threshold_wildfires) + tm_raster(style = "cat", title = "Threshold", palette= c("lightgrey", "red"), labels = c("Safe", "Trigger Points")) +
   tm_shape(boreal_outline) + tm_polygons(alpha = 0, border.col = "black") +
   tm_layout(frame = FALSE, legend.outside = TRUE)
 
 ## Export threshold raster data
-writeRaster(suitability_wildfires, filename = "Threshold Map.tif", overwrite = TRUE)
+writeRaster(threshold_wildfires, filename = "Threshold Map.tif", overwrite = TRUE)
 
 ## Generate the image
 bp <- background_points_env
